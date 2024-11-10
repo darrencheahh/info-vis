@@ -2,32 +2,31 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 
-# Parameters
+# Setting all the Parameters
 num_trials = 5
-trial_index = 0
+trial_index = 0 # starts at 0, up till num_trials 
 start_time = None
 response_times = []
-trial_cid = None  # Initialize trial_cid for managing event connections
+trial_cid = None  # this is for connecting events
 
 def generate_random_data():
-    """Generate random data for heatmap."""
-    return np.random.randint(0, 50, size=(5, 12))  # Example data dimensions
+    return np.random.randint(0, 50, size=(5, 12))  # this is randomised, i want set questions
 
+# this shows the 'Begin Test' screen
 def start_experiment(event):
-    """Handle click on the 'Begin Test' screen to start trials."""
-    fig.canvas.mpl_disconnect(begin_cid)  # Disconnect 'Begin Test' screen click event
-    show_ready_screen()  # Start with a ready screen before the first trial
+    fig.canvas.mpl_disconnect(begin_cid) 
+    show_ready_screen()  
 
+# this is the 1 second window between trials
 def show_ready_screen():
-    """Display a 1-second ready screen between trials."""
     plt.clf()
     plt.text(0.5, 0.5, "Ready", ha="center", va="center", fontsize=24, color='blue')
     plt.axis("off")
     plt.pause(1)
     start_trial()
 
+# the loop for actual trials
 def start_trial():
-    """Display a heatmap for each trial."""
     global trial_index, start_time, trial_cid
 
     if trial_index < num_trials:
@@ -38,7 +37,7 @@ def start_trial():
         cax = ax.matshow(data, cmap="viridis")
         plt.colorbar(cax)
         
-        # Set labels
+        # setting labels
         ax.set_xticks(np.arange(12))
         ax.set_xticklabels(["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], rotation=90)
         ax.set_yticks(np.arange(5))
@@ -47,34 +46,34 @@ def start_trial():
         # Title for each trial
         ax.set_title(f"Trial {trial_index + 1}")
         
-        # Start timing and connect click event for answer selection
+        # Timer and correct/incorrect
         start_time = time.time()
         trial_cid = fig.canvas.mpl_connect('button_press_event', on_click)
         plt.draw()
     else:
-        plt.close()  # Close after all trials completed
+        plt.close()
 
+# the click function
 def on_click(event):
-    """Handle clicks on the heatmap to record responses."""
     global trial_index, start_time, trial_cid
     
-    if event.inaxes:  # Ensure the click is within the plot area
+    if event.inaxes:  # need to modify this because its designed for heatmap
         response_time = time.time() - start_time
         response_times.append(response_time)
         
-        # Move to next trial
+        # on to next trial
         trial_index += 1
-        fig.canvas.mpl_disconnect(trial_cid)  # Disconnect trial click event
-        show_ready_screen()  # Show ready screen before next trial
+        fig.canvas.mpl_disconnect(trial_cid)  
+        show_ready_screen()  # flash ready screen
 
-# Set up the figure and show the 'Begin Test' screen
+# this is so its all within 1 ui window
 fig, ax = plt.subplots()
 ax.text(0.5, 0.5, 'Click to Begin Test', ha='center', va='center', fontsize=20)
 ax.axis("off")
-begin_cid = fig.canvas.mpl_connect('button_press_event', start_experiment)  # Connect start event to 'Begin Test' screen
+begin_cid = fig.canvas.mpl_connect('button_press_event', start_experiment) 
 plt.show()
 
-# Print results after experiment
+# Print results
 print("Experiment Complete. Results:")
 for i, response_time in enumerate(response_times, 1):
     print(f"Trial {i}: Response Time: {response_time:.2f} seconds")
