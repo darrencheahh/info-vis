@@ -39,11 +39,21 @@ def create_scatterplot(months, absences):
 
     fig.canvas.mpl_disconnect(cid)
 
+
+def show_blank_screen(duration=1):
+    fig, ax = plt.subplots(figsize=(8,6))
+    ax.set_facecolor("white")  # Blank white screen
+    ax.axis("off")  # Hide axes
+    plt.pause(duration)  # Display the blank screen for the specified duration
+    plt.close(fig)  # Close the blank screen figure
+
 def trial():
     months, absences, correct_month = generate_absence_data()
     create_scatterplot(months, absences)
     
     is_correct = (selected_month == correct_month) 
+    plt.close()
+    show_blank_screen()
     response_time = time.time()
     return is_correct, response_time
 
