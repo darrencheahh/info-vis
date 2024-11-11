@@ -14,16 +14,15 @@ trial_cid = None  # this is for connecting events
 current_experiment = "heatmap"
 
 num_schools = 10
+num_days = 5
 num_months = 12
-absences_data = np.random.randint(0, 151, size=(num_schools, num_months))
-
-trial_indices = np.random.choice(num_schools, num_trials, replace=False)
+# absences_data = np.random.randint(0, 151, size=(num_days, num_months))
 
 def generate_heatmap_data(trial_index):
-    return absences_data[trial_indices[trial_index]].reshape(1, -1)
+    return np.random.randint(0, 151, size=(num_days, num_months))
 
 def generate_scatter_data(trial_index):
-    y = absences_data[trial_indices[trial_index]]
+    y = np.random.randint(0, 151, size=num_months)
     x = np.arange(1, num_months + 1)
     return x, y
 
@@ -56,9 +55,9 @@ def start_heatmap_trial():
         plt.colorbar(cax)
 
         # setting labels
-        ax.set_xticks(np.arange(12))
+        ax.set_xticks(np.arange(num_months))
         ax.set_xticklabels(["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], rotation=90)
-        ax.set_yticks(np.arange(5))
+        ax.set_yticks(np.arange(num_days))
         ax.set_yticklabels(["Mon", "Tue", "Wed", "Thu", "Fri"])
 
         # Title for each trial
