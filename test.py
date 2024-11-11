@@ -120,7 +120,7 @@ def on_click_scatter(event, scatter_points):
     global trial_index, start_time, trial_cid
     if event.inaxes:
         x_clicked, y_clicked = event.xdata, event.ydata
-        x_tolerance, y_tolerance = 0.5, 0.7
+        x_tolerance, y_tolerance = 0.4, 0.6
 
         # valid answer check
         for x_vals, y_vals in scatter_points:
