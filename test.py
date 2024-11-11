@@ -10,26 +10,33 @@ num_trials = 5
 trial_index = 0 # starts at 0, up till num_trials 
 start_time = None
 response_times = []
+results = []  # stores the results of each trial
 trial_cid = None  # this is for connecting events
 current_experiment = "heatmap"
+colors = plt.colormaps.get_cmap('tab10').colors
 
 num_schools = 10
 num_days = 5
 num_months = 12
+month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 # absences_data = np.random.randint(0, 151, size=(num_days, num_months))
+
 
 def generate_heatmap_data(trial_index):
     return np.random.randint(0, 151, size=(num_schools, num_months))
 
+
 def generate_scatter_data(trial_index):
-    y = np.random.randint(0, 151, size=num_months)
     x = np.arange(1, num_months + 1)
-    return x, y
+    y_data = [np.random.randint(0, 250, num_months) for _ in range(num_schools)]
+    return x, y_data
+
 
 # this shows the 'Begin Test' screen
 def start_experiment(event):
     fig.canvas.mpl_disconnect(begin_cid) 
     show_ready_screen()  
+
 
 # this is the 1 second window between trials
 def show_ready_screen():
@@ -42,6 +49,7 @@ def show_ready_screen():
         start_heatmap_trial()
     else:
         start_scatter_trial()
+
 
 def start_heatmap_trial():
     global trial_index, start_time, trial_cid
@@ -70,18 +78,40 @@ def start_heatmap_trial():
     else:
         switch_to_scatter_trials()
 
+
 # the click function
 def on_click(event):
-    global trial_index, start_time, trial_cid
+    global trial_index, start_time, trial_cid, current_experiment, y_data, results
     
-    if event.inaxes:  # need to modify this because its designed for heatmap
-        response_time = time.time() - start_time
-        response_times.append(response_time)
+    if current_experiment == "heatmap":
+        if event.inaxes:  # need to modify this because its designed for heatmap
+            response_time = time.time() - start_time
+            response_times.append(response_time)
         
-        # on to next trial
-        trial_index += 1
-        fig.canvas.mpl_disconnect(trial_cid)  
-        show_ready_screen()  # flash ready screen
+            # on to next trial
+            trial_index += 1
+            fig.canvas.mpl_disconnect(trial_cid)  
+            show_ready_screen()  # flash ready screen
+
+    elif current_experiment == "scatter":
+        if event.inaxes:
+            response_time = time.time() - start_time
+            response_times.append(response_time)
+            max_absences = [np.max(y) for y in y_data]  # the outlier is the highest absences value
+            y_value_clicked = event.ydata
+
+            tolerance = 2
+            correct_click = any(abs(y_value_clicked - max_value) <= tolerance for max_value in max_absences)  # tolerance is 2 units around the highest value plot
+            results.append({
+                'trial': trial_index + 1,
+                'response': "Correct" if correct_click else "Wrong",
+                'response_time': response_time
+            })
+                
+            trial_index += 1
+            fig.canvas.mpl_disconnect(trial_cid)
+            show_ready_screen()
+
 
 # Function to switch to scatterplot trials
 def switch_to_scatter_trials():
@@ -92,27 +122,29 @@ def switch_to_scatter_trials():
 
 
 def start_scatter_trial():
-    global trial_index, start_time, trial_cid
+    global trial_index, start_time, trial_cid, y_data
 
     if trial_index < num_trials:
-        # Generate and display scatterplot data
-        x, y = generate_scatter_data(trial_index)
+        x, y_data = generate_scatter_data(trial_index)
         plt.clf()
         ax = plt.gca()
-        scatter = ax.scatter(x, y, c=y, cmap='viridis')
-        plt.colorbar(scatter)
 
-        # Title for each trial
+        for i, y in enumerate(y_data):
+            ax.scatter(x, y, color=colors[i], label=f'School {i + 1}')
+        
         ax.set_title(f"Scatter Trial {trial_index + 1}")
         ax.set_xlabel("Month")
         ax.set_ylabel("Absences")
+        ax.set_xticks(x)
+        ax.set_xticklabels(month_names)
+        ax.legend(title="Schools", bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0.5)
 
-        # Timer
         start_time = time.time()
         trial_cid = fig.canvas.mpl_connect('button_press_event', on_click)
         plt.draw()
     else:
         plt.close()
+
 
 # this is so its all within 1 ui window
 fig, ax = plt.subplots()
@@ -121,7 +153,8 @@ ax.axis("off")
 begin_cid = fig.canvas.mpl_connect('button_press_event', start_experiment) 
 plt.show()
 
-# Print results
+
+# print results
 print("Experiment Complete. Results:")
 for i, response_time in enumerate(response_times, 1):
     print(f"Trial {i}: Response Time: {response_time:.2f} seconds")
