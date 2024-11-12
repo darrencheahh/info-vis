@@ -14,8 +14,8 @@ cud_cmap = ListedColormap(cud_colors)
 
 # Setting all the Parameters
 num_trials = 6
-heatmap_trials = 3
-scatter_trials = 3
+heatmap_trials = 0
+scatter_trials = 6
 num_schools = 10
 num_days = 5
 num_months = 12
@@ -81,10 +81,10 @@ def generate_scatter_data():
     y_data = np.random.randint(0, 250, size=(num_schools, num_months))
 
     answers = {
-        "For school 5, select the month with the highest absences": np.argmax(y_data[4, :]),
-        "For school 6, select the month with the second highest absences": np.argsort(y_data[5, :])[::-1][1],
-        "Identify the school with the highest absence in January": (np.argmax(y_data[:, 0]), 0),
-        "Identify the school with the lowest absence in March": (np.argmin(y_data[:, 2]), 2),
+        "For school 5, select the month with the highest absences": np.argmax(y_data[4, :]) + 1,
+        "For school 6, select the month with the second highest absences": np.argsort(y_data[5, :])[-2] + 1,
+        "Identify the school with the highest absence in January": (np.argmax(y_data[:, 0]), 1),
+        "Identify the school with the lowest absence in March": (np.argmin(y_data[:, 2]), 3),
         "Compare schools 1 and 2 in January for higher absences": "School 1" if y_data[0, 0] > y_data[1, 0] else "School 2",
         "Identify schools 2 and 5, which had the highest decrease in absences in February": "School 2" if (y_data[1, 1] - y_data[1, 2]) > (y_data[4, 1] - y_data[4, 2]) else "School 5"
     }
@@ -237,45 +237,91 @@ def on_click_scatter(event, scatter_points, correct_answer):
 
         is_correct = False
 
-        # Handling month-based questions
-        if isinstance(correct_answer, tuple):
-            correct_row, correct_col = correct_answer
-            correct_x = correct_col + 1  # +1 because x values are 1-based (January is 1, February is 2, etc.)
-            correct_y = y_data[correct_row, correct_col]
+        # Handle each question type
+        if "For school 5, select the month with the highest absences" in question_text:
+            # We are interested in the month (x-axis) with the highest absences for school 5
+            correct_x = correct_answer  # month index on x-axis
+            correct_y = y_data[4, correct_x - 1]  # get the y-value for school 5 and month
+            print(f"correct_x ={correct_x}, correct_y = {correct_y}")
+            is_correct = (abs(x_clicked - correct_x) <= correct_x_tolerance and
+                          abs(y_clicked - correct_y) <= correct_y_tolerance)
 
-            # Check if the click is within the tolerance range of the correct point
-            if abs(x_clicked - correct_x) <= correct_x_tolerance and abs(y_clicked - correct_y) <= correct_y_tolerance:
-                is_correct = True
+        elif "For school 6, select the month with the second highest absences" in question_text:
+            # For school 6, identify the month with the second highest absences
+            correct_x = correct_answer
+            correct_y = y_data[5, correct_x - 1]
+            print(f"correct_x ={correct_x}, correct_y = {correct_y}")
+            is_correct = (abs(x_clicked - correct_x) <= correct_x_tolerance and
+                          abs(y_clicked - correct_y) <= correct_y_tolerance)
+
+        elif "Identify the school with the highest absence in January" in question_text:
+            # Identify the school (y-axis) with the highest absence in January
+            school_index = correct_answer[0]
+            correct_x = 1  # January corresponds to x = 1
+            correct_y = y_data[school_index, 0]
+            print(f"correct_x ={correct_x}, correct_y = {correct_y}")
+            is_correct = (abs(x_clicked - correct_x) <= correct_x_tolerance and
+                          abs(y_clicked - correct_y) <= correct_y_tolerance)
+
+        elif "Identify the school with the lowest absence in March" in question_text:
+            # Identify the school (y-axis) with the lowest absence in March
+            correct_y = correct_answer[0]
+            correct_x = 3  # March corresponds to x = 3
+            print(f"correct_x ={correct_x}, correct_y = {correct_y}")
+            is_correct = (abs(x_clicked - correct_x) <= correct_x_tolerance and
+                          abs(y_clicked - correct_y) <= correct_y_tolerance)
+
+        elif "Compare schools 1 and 2 in January for higher absences" in question_text:
+            # Comparison between two schools on their absences in January
+            correct_x = 1  # January
+            if (abs(x_clicked - correct_x) <= correct_x_tolerance and
+                    (abs(y_clicked - y_data[0, 0]) <= correct_y_tolerance or
+                     abs(y_clicked - y_data[1, 0]) <= correct_y_tolerance)):
+                # Check that the clicked value is close to either School 1 or School 2’s January data
+                correct_school = "School 1" if y_data[0, 0] > y_data[1, 0] else "School 2"
+                is_correct = (correct_answer == correct_school)
+
+        elif "Identify schools 2 and 5, which had the highest decrease in absences in February" in question_text:
+            # Identify between schools 2 and 5 based on the highest decrease from February to March
+            correct_x = 2  # February on the x-axis
+            if (abs(x_clicked - correct_x) <= correct_x_tolerance and
+                    (abs(y_clicked - y_data[1, 1]) <= correct_y_tolerance or
+                     abs(y_clicked - y_data[4, 1]) <= correct_y_tolerance)):
+                # Check that the click is near either School 2 or School 5 in February
+                correct_school = "School 2" if (y_data[1, 1] - y_data[1, 2]) > (
+                            y_data[4, 1] - y_data[4, 2]) else "School 5"
+                is_correct = (correct_answer == correct_school)
+
 
         # Handling comparison questions between schools
-        elif isinstance(correct_answer, str) and "School" in correct_answer:
-            # Extract school numbers from the question using regular expressions
-            school_numbers = list(map(int, re.findall(r'\d+', question_text)))
-            if len(school_numbers) == 2:
-                school_1, school_2 = school_numbers
-
-                # Retrieve absences for both schools in January (or any relevant month)
-                month_index = 0  # Default to January for now; adjust based on the question
-                if "February" in question_text:
-                    month_index = 1
-                elif "March" in question_text:
-                    month_index = 2
-
-                school_1_absence = y_data[school_1 - 1, month_index]  # Adjust for 0-based index
-                school_2_absence = y_data[school_2 - 1, month_index]
-
-                # Determine which school has higher absences
-                correct_school = school_1 if school_1_absence > school_2_absence else school_2
-
-                # Validate if the user's click is near the correct school's data point for the specified month
-                if correct_answer == f"School {correct_school}":
-                    # Get the x-coordinate for the month and y-coordinate for the correct school's absences
-                    correct_x = month_index + 1  # +1 because x values are 1-based (January is 1, February is 2, etc.)
-                    correct_y = y_data[correct_school - 1, month_index]
-
-                    # Check if the click is within the tolerance range of the correct point
-                    if abs(x_clicked - correct_x) <= correct_x_tolerance and abs(y_clicked - correct_y) <= correct_y_tolerance:
-                        is_correct = True
+        # elif isinstance(correct_answer, str) and "School" in correct_answer:
+        #     # Extract school numbers from the question using regular expressions
+        #     school_numbers = list(map(int, re.findall(r'\d+', question_text)))
+        #     if len(school_numbers) == 2:
+        #         school_1, school_2 = school_numbers
+        #
+        #         # Retrieve absences for both schools in January (or any relevant month)
+        #         month_index = 0  # Default to January for now; adjust based on the question
+        #         if "February" in question_text:
+        #             month_index = 1
+        #         elif "March" in question_text:
+        #             month_index = 2
+        #
+        #         school_1_absence = y_data[school_1 - 1, month_index]  # Adjust for 0-based index
+        #         school_2_absence = y_data[school_2 - 1, month_index]
+        #
+        #         # Determine which school has higher absences
+        #         correct_school = school_1 if school_1_absence > school_2_absence else school_2
+        #
+        #         # Validate if the user's click is near the correct school's data point for the specified month
+        #         if correct_answer == f"School {correct_school}":
+        #             # Get the x-coordinate for the month and y-coordinate for the correct school's absences
+        #             correct_x = month_index + 1  # +1 because x values are 1-based (January is 1, February is 2, etc.)
+        #             correct_y = y_data[correct_school - 1, month_index]
+        #
+        #             # Check if the click is within the tolerance range of the correct point
+        #             if abs(x_clicked - correct_x) <= correct_x_tolerance and abs(y_clicked - correct_y) <= correct_y_tolerance:
+        #                 is_correct = True
 
         # Record response time and correctness
         response_time = time.time() - start_time
