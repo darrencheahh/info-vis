@@ -1,12 +1,22 @@
 Absences vary across a school year in 10 schools
+For school 5, select the Month with the highest absences
 Month with highest absences for a school
-Month with lowest absences for a school
-School with highest absences in a month
+(Select the school with the lowest absences in a Month)
+
+For school 6, select the Month with second highest absences
+Month with second lowest absences for a school
+(Select the school with the second lowest absences in a Month)
+
+Select the School with highest absences for the month of january
 School with lowest absences in a month
-Compare 2 schools for higher absences in a year/month
-Compare 2 schools for lower absences in a year/month
-Same peak month of 2 schools
-Month with second highest absence for a school
-Consistent highest absence
-Least variance?
-Most variance?
+
+School with same highest absences in a month for the year- where absences of school at point max < 2
+reversed for lowest
+
+compare schools 1 and 2 in january for higher absences
+compare = lower absences
+
+compare school 1 and school 2, which had the highest decrease in absences in february
+
+
+
