@@ -23,7 +23,7 @@ trial_types = []
 trial_cid = None  # this is for connecting events
 current_trial_type = None
 point_size = 80
-colors = plt.colormaps.get_cmap('tab10').colors
+colors = ['#377eb8', '#ff7f00', '#4daf4a', '#f781bf', '#a65628', '#984ea3', '#999999', '#e41a1c', '#dede00']  # Color Universal Design (CUD) colors
 current_question = {"question": "", "correct_answer": None}
 month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
@@ -64,8 +64,8 @@ def generate_heatmap_data():
     answers = {
         "For school 5, select the month with the highest absences": np.argmax(data[4, :]),
         "For school 6, select the month with the second highest absences": np.argsort(data[5, :])[-2],
-        "Identify the school with the highest absence in January": np.argmax(data[:, 0]),
-        "Identify the school with the lowest absence in March": np.argmin(data[:, 2]),
+        "Identify the school with the highest absence in January": (np.argmax(data[:, 0]), 0),
+        "Identify the school with the lowest absence in March": (np.argmin(data[:, 2]), 2),
         "Compare schools 1 and 2 in January for higher absences": "School 1" if data[0,0] > data[1,0] else "School 2",
         "Identify schools 2 and 5, which had the highest decrease in absences in February": "School 2" if (data[1, 1] - data[1, 2]) > (data[4, 1] - data[4, 2]) else "School 5"
     }
@@ -80,8 +80,8 @@ def generate_scatter_data():
     answers = {
         "For school 5, select the month with the highest absences": np.argmax(y_data[4, :]),
         "For school 6, select the month with the second highest absences": np.argsort(y_data[5, :])[::-1][1],
-        "Identify the school with the highest absence in January": np.argmax(y_data[:, 0]),
-        "Identify the school with the lowest absence in March": np.argmin(y_data[:, 2]),
+        "Identify the school with the highest absence in January": (np.argmax(y_data[:, 0]), 0),
+        "Identify the school with the lowest absence in March": (np.argmin(y_data[:, 2]), 2),
         "Compare schools 1 and 2 in January for higher absences": "School 1" if y_data[0, 0] > y_data[1, 0] else "School 2",
         "Identify schools 2 and 5, which had the highest decrease in absences in February": "School 2" if (y_data[1, 1] - y_data[1, 2]) > (y_data[4, 1] - y_data[4, 2]) else "School 5"
     }
@@ -147,7 +147,7 @@ def start_heatmap_trial():
     ax.set_xticklabels(month_names, rotation=90)
     ax.set_yticks(np.arange(num_schools))
     ax.set_yticklabels([f"School {i+1}" for i in range(num_schools)])
-    ax.set_title(f"Heatmap Trial {trial_index + 1}")
+    ax.set_title(question_text)  # Set the question as the title of the graph
 
     start_time = time.time()
     trial_cid = fig.canvas.mpl_connect('button_press_event', on_click_heatmap)
@@ -172,9 +172,9 @@ def on_click_heatmap(event):
         elif "For school 6, select the month with the second highest absences" in question_text:
             is_correct = (row == 5 and col == correct_answer)
         elif "Identify the school with the highest absence in January" in question_text:
-            is_correct = (col == 0 and row == correct_answer)
+            is_correct = (row == correct_answer[0] and col == correct_answer[1])
         elif "Identify the school with the lowest absence in March" in question_text:
-            is_correct = (col == 2 and row == correct_answer)
+            is_correct = (row == correct_answer[0] and col == correct_answer[1])
         elif "Compare schools 1 and 2 in January for higher absences" in question_text:
             is_correct = (col == 0 and (row == 0 or row == 1))
         elif "Identify schools 2 and 5, which had the highest decrease in absences in February" in question_text:
@@ -206,10 +206,10 @@ def start_scatter_trial():
     scatter_points = []
     
     for i, y in enumerate(y_data):
-        scatter = ax.scatter(x, y, color=colors[i], label=f'School {i + 1}', s=point_size)
+        scatter = ax.scatter(x, y, color=colors[i % len(colors)], label=f'School {i + 1}', s=point_size)
         scatter_points.append((x, y))
     
-    ax.set_title(f"Scatter Trial {trial_index + 1}")
+    ax.set_title(question_text)  # Set the question as the title of the graph
     ax.set_xlabel("Month")
     ax.set_ylabel("Absences")
     ax.set_xticks(x)
@@ -236,9 +236,13 @@ def on_click_scatter(event, scatter_points, correct_answer):
         is_correct = False
 
         # Handling month-based questions
-        if isinstance(correct_answer, int):
-            # Check if the x-coordinate of the click is close to the correct month
-            if abs(x_clicked - (correct_answer + 1)) <= correct_x_tolerance:
+        if isinstance(correct_answer, tuple):
+            correct_row, correct_col = correct_answer
+            correct_x = correct_col + 1  # +1 because x values are 1-based (January is 1, February is 2, etc.)
+            correct_y = y_data[correct_row, correct_col]
+
+            # Check if the click is within the tolerance range of the correct point
+            if abs(x_clicked - correct_x) <= correct_x_tolerance and abs(y_clicked - correct_y) <= correct_y_tolerance:
                 is_correct = True
 
         # Handling comparison questions between schools
