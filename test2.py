@@ -13,10 +13,13 @@ matplotlib.use('TkAgg')
 cud_colors = ['#377eb8', '#ff7f00', '#4daf4a', '#f781bf', '#a65628', '#984ea3', '#999999', '#e41a1c', '#dede00']
 cud_cmap = ListedColormap(cud_colors)
 
+
 matplotlib_colors = plt.get_cmap('tab10').colors
 
-# Setting Parameters
+# Setting all the Parameters
 num_trials = 6
+heatmap_trials = 0
+scatter_trials = 6
 num_schools = 10
 num_days = 5
 num_months = 12
@@ -59,10 +62,10 @@ def generate_scatter_data():
     x = np.arange(1, num_months + 1)
     y_data = np.random.randint(0, 250, size=(num_schools, num_months))
     answers = {
-        "For school 5, select the month with the highest absences": np.argmax(y_data[4, :]),
-        "For school 6, select the month with the second highest absences": np.argsort(y_data[5, :])[::-1][1],
-        "Identify the school with the highest absence in January": (np.argmax(y_data[:, 0]), 0),
-        "Identify the school with the lowest absence in March": (np.argmin(y_data[:, 2]), 2),
+        "For school 5, select the month with the highest absences": np.argmax(y_data[4, :]) + 1,
+        "For school 6, select the month with the second highest absences": np.argsort(y_data[5, :])[-2] + 1,
+        "Identify the school with the highest absence in January": (np.argmax(y_data[:, 0]), 1),
+        "Identify the school with the lowest absence in March": (np.argmin(y_data[:, 2]), 3),
         "Compare schools 1 and 2 in January for higher absences": "School 1" if y_data[0, 0] > y_data[1, 0] else "School 2",
         "Identify schools 2 and 5, which had the highest decrease in absences in February": "School 2" if (y_data[1, 1] - y_data[1, 2]) > (y_data[4, 1] - y_data[4, 2]) else "School 5"
     }
@@ -241,7 +244,8 @@ def on_click_scatter(event, scatter_points, correct_answer):
 
         is_correct = False
 
-        # Handling month-based questions
+
+        # Handle each question type
         if "For school 5, select the month with the highest absences" in question_text:
             # We are interested in the month (x-axis) with the highest absences for school 5
             correct_x = correct_answer  # month index on x-axis
@@ -257,6 +261,8 @@ def on_click_scatter(event, scatter_points, correct_answer):
             print(f"correct_x ={correct_x}, correct_y = {correct_y}")
             is_correct = (abs(x_clicked - correct_x) <= correct_x_tolerance and
                         abs(y_clicked - correct_y) <= correct_y_tolerance)
+
+                          
 
         elif "Identify the school with the highest absence in January" in question_text:
             # Identify the school (y-axis) with the highest absence in January
@@ -281,6 +287,7 @@ def on_click_scatter(event, scatter_points, correct_answer):
             if (abs(x_clicked - correct_x) <= correct_x_tolerance and
                     (abs(y_clicked - y_data[0, 0]) <= correct_y_tolerance or
                     abs(y_clicked - y_data[1, 0]) <= correct_y_tolerance)):
+
                 # Check that the clicked value is close to either School 1 or School 2’s January data
                 correct_school = "School 1" if y_data[0, 0] > y_data[1, 0] else "School 2"
                 is_correct = (correct_answer == correct_school)
@@ -291,10 +298,12 @@ def on_click_scatter(event, scatter_points, correct_answer):
             if (abs(x_clicked - correct_x) <= correct_x_tolerance and
                     (abs(y_clicked - y_data[1, 1]) <= correct_y_tolerance or
                     abs(y_clicked - y_data[4, 1]) <= correct_y_tolerance)):
+
                 # Check that the click is near either School 2 or School 5 in February
                 correct_school = "School 2" if (y_data[1, 1] - y_data[1, 2]) > (
                             y_data[4, 1] - y_data[4, 2]) else "School 5"
                 is_correct = (correct_answer == correct_school)
+
 
         # Record response time and correctness
         response_time = time.time() - start_time
