@@ -12,6 +12,9 @@ matplotlib.use('TkAgg')
 cud_colors = ['#377eb8', '#ff7f00', '#4daf4a', '#f781bf', '#a65628', '#984ea3', '#999999', '#e41a1c', '#dede00']
 cud_cmap = ListedColormap(cud_colors)
 
+# Matplotlib colors
+matplotlib_colors = plt.colormaps.get_cmap('tab10').colors
+
 # Setting all the Parameters
 num_trials = 6
 heatmap_trials = 3
@@ -208,7 +211,7 @@ def start_scatter_trial():
     scatter_points = []
     
     for i, y in enumerate(y_data):
-        scatter = ax.scatter(x, y, color=cud_colors[i % len(cud_colors)], label=f'School {i + 1}', s=point_size)
+        scatter = ax.scatter(x, y, color=matplotlib_colors[i], label=f'School {i + 1}', s=point_size)
         scatter_points.append((x, y))
     
     ax.set_title(question_text)  # Set the question as the title of the graph
