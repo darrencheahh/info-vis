@@ -5,6 +5,7 @@ import time
 import random
 import re
 from matplotlib.colors import ListedColormap
+import matplotlib.patches as patches
 
 matplotlib.use('TkAgg')
 
@@ -12,8 +13,8 @@ matplotlib.use('TkAgg')
 cud_colors = ['#377eb8', '#ff7f00', '#4daf4a', '#f781bf', '#a65628', '#984ea3', '#999999', '#e41a1c', '#dede00']
 cud_cmap = ListedColormap(cud_colors)
 
-# Matplotlib colors
-matplotlib_colors = plt.colormaps.get_cmap('tab10').colors
+
+matplotlib_colors = plt.get_cmap('tab10').colors
 
 # Setting all the Parameters
 num_trials = 6
@@ -22,51 +23,31 @@ scatter_trials = 6
 num_schools = 10
 num_days = 5
 num_months = 12
-trial_index = 0 # starts at 0, up till num_trials 
+trial_index = 0
 start_time = None
 response_times = []
-results = []  # stores the results of each trial
+results = []
 trial_types = []
-trial_cid = None  # this is for connecting events
+selected_chart_type = None  # Stores user's choice of chart
 current_trial_type = None
+trial_cid = None
 point_size = 80
-current_question = {"question": "", "correct_answer": None}
 month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
-trial_order = random.sample(["heatmap"] * heatmap_trials + ["scatter"] * scatter_trials, num_trials)
-
 questions = [
-    {
-        "question": "For school 5, select the month with the highest absences",
-        "correct_answer": None
-    },
-    {
-        "question": "For school 6, select the month with the second highest absences",
-        "correct_answer": None
-    },
-    {
-        "question": "Identify the school with the highest absence in January",
-        "correct_answer": None
-    },
-    {
-        "question": "Identify the school with the lowest absence in March",
-        "correct_answer": None
-    },
-    {
-        "question": "Compare schools 1 and 2 in January for higher absences",
-        "correct_answer": None
-    },
-    {
-        "question": "Identify schools 2 and 5, which had the highest decrease in absences in February",
-        "correct_answer": None
-    }
+    {"question": "For school 5, select the month with the highest absences", "correct_answer": None},
+    {"question": "For school 6, select the month with the second highest absences", "correct_answer": None},
+    {"question": "Identify the school with the highest absence in January", "correct_answer": None},
+    {"question": "Identify the school with the lowest absence in March", "correct_answer": None},
+    {"question": "Compare schools 1 and 2 in January for higher absences", "correct_answer": None},
+    {"question": "Identify schools 2 and 5, which had the highest decrease in absences in February", "correct_answer": None}
 ]
 
 trial_questions = random.sample(questions, num_trials)
 
+# Data generation functions
 def generate_heatmap_data():
     data = np.random.randint(0, 151, size=(num_schools, num_months))
-
     answers = {
         "For school 5, select the month with the highest absences": np.argmax(data[4, :]),
         "For school 6, select the month with the second highest absences": np.argsort(data[5, :])[-2],
@@ -75,14 +56,11 @@ def generate_heatmap_data():
         "Compare schools 1 and 2 in January for higher absences": "School 1" if data[0,0] > data[1,0] else "School 2",
         "Identify schools 2 and 5, which had the highest decrease in absences in February": "School 2" if (data[1, 1] - data[1, 2]) > (data[4, 1] - data[4, 2]) else "School 5"
     }
-
     return data, answers
-
 
 def generate_scatter_data():
     x = np.arange(1, num_months + 1)
     y_data = np.random.randint(0, 250, size=(num_schools, num_months))
-
     answers = {
         "For school 5, select the month with the highest absences": np.argmax(y_data[4, :]) + 1,
         "For school 6, select the month with the second highest absences": np.argsort(y_data[5, :])[-2] + 1,
@@ -91,17 +69,44 @@ def generate_scatter_data():
         "Compare schools 1 and 2 in January for higher absences": "School 1" if y_data[0, 0] > y_data[1, 0] else "School 2",
         "Identify schools 2 and 5, which had the highest decrease in absences in February": "School 2" if (y_data[1, 1] - y_data[1, 2]) > (y_data[4, 1] - y_data[4, 2]) else "School 5"
     }
-
     return x, y_data, answers
 
+# Homepage to select trial type
+def show_homepage():
+    plt.clf()
+    plt.text(0.5, 0.6, "Select Chart Type for the Test", ha="center", va="center", fontsize=24, color='blue')
+    plt.text(0.3, 0.4, "Heatmap", ha="center", va="center", fontsize=20, color='green')
+    plt.text(0.7, 0.4, "Scatterplot", ha="center", va="center", fontsize=20, color='purple')
+    plt.text(0.5, 0.2, "Click to Choose", ha="center", va="center", fontsize=16, color='grey')
+    plt.axis("off")
 
-# this shows the 'Begin Test' screen
-def start_experiment(event):
-    fig.canvas.mpl_disconnect(begin_cid) 
-    show_ready_screen()  
+    ax = plt.gca()
+    heatmap_box = patches.Rectangle((0.15, 0.35), 0.3, 0.1, linewidth=2, edgecolor='green', facecolor='none')
+    scatterplot_box = patches.Rectangle((0.52, 0.35), 0.35, 0.1, linewidth=2, edgecolor='purple', facecolor='none')
+    ax.add_patch(heatmap_box)
+    ax.add_patch(scatterplot_box)
 
+    plt.draw()
 
-# this is the 1 second window between trials
+def on_homepage_click(event):
+    global selected_chart_type, begin_cid
+
+    # Detect clicks on heatmap or scatterplot
+    if event.xdata and event.ydata:
+        if 0.2 < event.xdata < 0.4 and 0.35 < event.ydata < 0.45:
+            selected_chart_type = "heatmap"
+        elif 0.6 < event.xdata < 0.8 and 0.35 < event.ydata < 0.45:
+            selected_chart_type = "scatterplot"
+
+        if selected_chart_type:
+            fig.canvas.mpl_disconnect(begin_cid)
+            start_experiment()  # Start trials for the selected chart type
+
+# Start experiment based on chart selection
+def start_experiment():
+    show_ready_screen()
+
+# Ready screen between trials
 def show_ready_screen():
     plt.clf()
     plt.text(0.5, 0.5, "Ready", ha="center", va="center", fontsize=24, color='blue')
@@ -109,31 +114,32 @@ def show_ready_screen():
     plt.pause(1)
     show_next_trial()
 
-# Start a trial based on the trial type
+# Display the next trial
 def show_next_trial():
-    global trial_index, current_trial_type, current_question
+    global trial_index, current_question
+
     if trial_index < num_trials:
-        current_trial_type = trial_order[trial_index]
-        current_question = trial_questions[trial_index]  # Get the question info
+        current_question = trial_questions[trial_index]
 
         # Set the current question text and reset the correct answer
         current_question["question"] = current_question["question"]
         current_question["correct_answer"] = None  # This will be set in the trial function
 
+
         # Display the question
         plt.clf()
         plt.text(0.5, 0.5, current_question["question"], ha="center", va="center", fontsize=16, wrap=True)
         plt.axis("off")
-        plt.pause(2)  # Pause to show the question before starting the trial
+        plt.pause(2)
 
-        if current_trial_type == "heatmap":
+        if selected_chart_type == "heatmap":
             start_heatmap_trial()
-        else:
+        elif selected_chart_type == "scatterplot":
             start_scatter_trial()
     else:
         plt.close()
 
-
+# Heatmap trial
 def start_heatmap_trial():
     global trial_index, start_time, trial_cid, current_question
 
@@ -141,23 +147,21 @@ def start_heatmap_trial():
 
     plt.clf()
     data, answers = generate_heatmap_data()
-
-    question_text = current_question["question"]
-    correct_answer = answers.get(question_text, None)
-    current_question["correct_answer"] = correct_answer
+    current_question["correct_answer"] = answers.get(current_question["question"])
 
     ax = plt.gca()
-    cax = ax.matshow(data, cmap=cud_cmap)  # Use the CUD colormap
+    cax = ax.matshow(data, cmap=cud_cmap)
     plt.colorbar(cax)
     ax.set_xticks(np.arange(num_months))
     ax.set_xticklabels(month_names, rotation=90)
     ax.set_yticks(np.arange(num_schools))
     ax.set_yticklabels([f"School {i+1}" for i in range(num_schools)])
-    ax.set_title(question_text)  # Set the question as the title of the graph
+    ax.set_title(current_question["question"])
 
     start_time = time.time()
     trial_cid = fig.canvas.mpl_connect('button_press_event', on_click_heatmap)
     plt.draw()
+
 
 def on_click_heatmap(event):
     global trial_index, start_time, trial_cid, current_question
@@ -195,6 +199,7 @@ def on_click_heatmap(event):
         trial_index += 1
         show_ready_screen()
 
+# Scatterplot trial
 def start_scatter_trial():
     global trial_index, start_time, trial_cid, y_data, current_question
 
@@ -202,19 +207,19 @@ def start_scatter_trial():
 
     plt.clf()
     x, y_data, answers = generate_scatter_data()
-
+    
     question_text = current_question["question"]
     correct_answer = answers[question_text]
     current_question["correct_answer"] = correct_answer
 
     ax = plt.gca()
     scatter_points = []
-    
+
     for i, y in enumerate(y_data):
         scatter = ax.scatter(x, y, color=matplotlib_colors[i], label=f'School {i + 1}', s=point_size)
         scatter_points.append((x, y))
     
-    ax.set_title(question_text)  # Set the question as the title of the graph
+    ax.set_title(question_text)
     ax.set_xlabel("Month")
     ax.set_ylabel("Absences")
     ax.set_xticks(x)
@@ -224,7 +229,6 @@ def start_scatter_trial():
     start_time = time.time()
     trial_cid = fig.canvas.mpl_connect('button_press_event', lambda event: on_click_scatter(event, scatter_points, correct_answer))
     plt.draw()
-
 
 def on_click_scatter(event, scatter_points, correct_answer):
     global trial_index, start_time, trial_cid, current_question
@@ -239,6 +243,7 @@ def on_click_scatter(event, scatter_points, correct_answer):
         print(f"Clicked: (x={x_clicked:.2f}, y={y_clicked:.2f}), Correct Answer: {correct_answer}")
 
         is_correct = False
+
 
         # Handle each question type
         if "For school 5, select the month with the highest absences" in question_text:
@@ -255,7 +260,9 @@ def on_click_scatter(event, scatter_points, correct_answer):
             correct_y = y_data[5, correct_x - 1]
             print(f"correct_x ={correct_x}, correct_y = {correct_y}")
             is_correct = (abs(x_clicked - correct_x) <= correct_x_tolerance and
-                          abs(y_clicked - correct_y) <= correct_y_tolerance)
+                        abs(y_clicked - correct_y) <= correct_y_tolerance)
+
+                          
 
         elif "Identify the school with the highest absence in January" in question_text:
             # Identify the school (y-axis) with the highest absence in January
@@ -264,7 +271,7 @@ def on_click_scatter(event, scatter_points, correct_answer):
             correct_y = y_data[school_index, 0]
             print(f"correct_x ={correct_x}, correct_y = {correct_y}")
             is_correct = (abs(x_clicked - correct_x) <= correct_x_tolerance and
-                          abs(y_clicked - correct_y) <= correct_y_tolerance)
+                        abs(y_clicked - correct_y) <= correct_y_tolerance)
 
         elif "Identify the school with the lowest absence in March" in question_text:
             # Identify the school (y-axis) with the lowest absence in March
@@ -272,14 +279,15 @@ def on_click_scatter(event, scatter_points, correct_answer):
             correct_x = 3  # March corresponds to x = 3
             print(f"correct_x ={correct_x}, correct_y = {correct_y}")
             is_correct = (abs(x_clicked - correct_x) <= correct_x_tolerance and
-                          abs(y_clicked - correct_y) <= correct_y_tolerance)
+                        abs(y_clicked - correct_y) <= correct_y_tolerance)
 
         elif "Compare schools 1 and 2 in January for higher absences" in question_text:
             # Comparison between two schools on their absences in January
             correct_x = 1  # January
             if (abs(x_clicked - correct_x) <= correct_x_tolerance and
                     (abs(y_clicked - y_data[0, 0]) <= correct_y_tolerance or
-                     abs(y_clicked - y_data[1, 0]) <= correct_y_tolerance)):
+                    abs(y_clicked - y_data[1, 0]) <= correct_y_tolerance)):
+
                 # Check that the clicked value is close to either School 1 or School 2’s January data
                 correct_school = "School 1" if y_data[0, 0] > y_data[1, 0] else "School 2"
                 is_correct = (correct_answer == correct_school)
@@ -289,42 +297,13 @@ def on_click_scatter(event, scatter_points, correct_answer):
             correct_x = 2  # February on the x-axis
             if (abs(x_clicked - correct_x) <= correct_x_tolerance and
                     (abs(y_clicked - y_data[1, 1]) <= correct_y_tolerance or
-                     abs(y_clicked - y_data[4, 1]) <= correct_y_tolerance)):
+                    abs(y_clicked - y_data[4, 1]) <= correct_y_tolerance)):
+
                 # Check that the click is near either School 2 or School 5 in February
                 correct_school = "School 2" if (y_data[1, 1] - y_data[1, 2]) > (
                             y_data[4, 1] - y_data[4, 2]) else "School 5"
                 is_correct = (correct_answer == correct_school)
 
-
-        # Handling comparison questions between schools
-        # elif isinstance(correct_answer, str) and "School" in correct_answer:
-        #     # Extract school numbers from the question using regular expressions
-        #     school_numbers = list(map(int, re.findall(r'\d+', question_text)))
-        #     if len(school_numbers) == 2:
-        #         school_1, school_2 = school_numbers
-        #
-        #         # Retrieve absences for both schools in January (or any relevant month)
-        #         month_index = 0  # Default to January for now; adjust based on the question
-        #         if "February" in question_text:
-        #             month_index = 1
-        #         elif "March" in question_text:
-        #             month_index = 2
-        #
-        #         school_1_absence = y_data[school_1 - 1, month_index]  # Adjust for 0-based index
-        #         school_2_absence = y_data[school_2 - 1, month_index]
-        #
-        #         # Determine which school has higher absences
-        #         correct_school = school_1 if school_1_absence > school_2_absence else school_2
-        #
-        #         # Validate if the user's click is near the correct school's data point for the specified month
-        #         if correct_answer == f"School {correct_school}":
-        #             # Get the x-coordinate for the month and y-coordinate for the correct school's absences
-        #             correct_x = month_index + 1  # +1 because x values are 1-based (January is 1, February is 2, etc.)
-        #             correct_y = y_data[correct_school - 1, month_index]
-        #
-        #             # Check if the click is within the tolerance range of the correct point
-        #             if abs(x_clicked - correct_x) <= correct_x_tolerance and abs(y_clicked - correct_y) <= correct_y_tolerance:
-        #                 is_correct = True
 
         # Record response time and correctness
         response_time = time.time() - start_time
@@ -336,7 +315,7 @@ def on_click_scatter(event, scatter_points, correct_answer):
         trial_index += 1
         show_ready_screen()
 
-# Function to print results at the end of the experiment
+
 def print_results():
     print("\nExperiment Complete. Results:")
     for i, (response_time, is_correct, trial_type) in enumerate(zip(response_times, results, trial_types), 1):
@@ -344,12 +323,10 @@ def print_results():
         print(f"Trial {i} ({trial_type}): Response Time: {response_time:.2f} seconds - {status}")
 
 
-# this is so its all within 1 ui window
+# Initial UI setup
 fig, ax = plt.subplots()
-ax.text(0.5, 0.5, 'Click to Begin Test', ha='center', va='center', fontsize=20)
-ax.axis("off")
-begin_cid = fig.canvas.mpl_connect('button_press_event', start_experiment) 
+begin_cid = fig.canvas.mpl_connect('button_press_event', on_homepage_click)
+show_homepage()
 plt.show()
 
-# print results
 print_results()
