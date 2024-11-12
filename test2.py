@@ -1,12 +1,16 @@
 import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.widgets import Button
 import numpy as np
 import time
 import random
 import re
+from matplotlib.colors import ListedColormap
 
 matplotlib.use('TkAgg')
+
+# Color Universal Design (CUD) colors
+cud_colors = ['#377eb8', '#ff7f00', '#4daf4a', '#f781bf', '#a65628', '#984ea3', '#999999', '#e41a1c', '#dede00']
+cud_cmap = ListedColormap(cud_colors)
 
 # Setting all the Parameters
 num_trials = 6
@@ -23,7 +27,6 @@ trial_types = []
 trial_cid = None  # this is for connecting events
 current_trial_type = None
 point_size = 80
-colors = ['#377eb8', '#ff7f00', '#4daf4a', '#f781bf', '#a65628', '#984ea3', '#999999', '#e41a1c', '#dede00']  # Color Universal Design (CUD) colors
 current_question = {"question": "", "correct_answer": None}
 month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
@@ -141,7 +144,7 @@ def start_heatmap_trial():
     current_question["correct_answer"] = correct_answer
 
     ax = plt.gca()
-    cax = ax.matshow(data, cmap="viridis")
+    cax = ax.matshow(data, cmap=cud_cmap)  # Use the CUD colormap
     plt.colorbar(cax)
     ax.set_xticks(np.arange(num_months))
     ax.set_xticklabels(month_names, rotation=90)
@@ -152,7 +155,6 @@ def start_heatmap_trial():
     start_time = time.time()
     trial_cid = fig.canvas.mpl_connect('button_press_event', on_click_heatmap)
     plt.draw()
-
 
 def on_click_heatmap(event):
     global trial_index, start_time, trial_cid, current_question
@@ -206,7 +208,7 @@ def start_scatter_trial():
     scatter_points = []
     
     for i, y in enumerate(y_data):
-        scatter = ax.scatter(x, y, color=colors[i % len(colors)], label=f'School {i + 1}', s=point_size)
+        scatter = ax.scatter(x, y, color=cud_colors[i % len(cud_colors)], label=f'School {i + 1}', s=point_size)
         scatter_points.append((x, y))
     
     ax.set_title(question_text)  # Set the question as the title of the graph
