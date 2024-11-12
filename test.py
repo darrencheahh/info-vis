@@ -79,7 +79,7 @@ def generate_scatter_data():
 
     answers = {
         "For school 5, select the month with the highest absences": np.argmax(y_data[4, :]),
-        "For school 6, select the month with the second highest absences": np.argsort(y_data[5, :])[-2],
+        "For school 6, select the month with the second highest absences": np.argsort(y_data[5, :])[::-1],
         "Identify the school with the highest absence in January": np.argmax(y_data[:, 0]),
         "Identify the school with the lowest absence in March": np.argmin(y_data[:, 2]),
         "Compare schools 1 and 2 in January for higher absences": "School 1" if y_data[0, 0] > y_data[1, 0] else "School 2",
@@ -173,10 +173,37 @@ def on_click_heatmap(event):
             school_numbers = list(map(int, re.findall(r'\d+', question_text)))
             if len(school_numbers) == 2:
                 school_1, school_2 = school_numbers
+
+                month_index = 0 #default to jan
+                if "February" in question_text:
+                    month_index = 1
+                elif "March" in question_text:
+                    month_index = 2
+                elif "April" in question_text:
+                    month_index = 3
+                elif "May" in question_text:
+                    month_index = 4
+                elif "June" in question_text:
+                    month_index = 5
+                elif "July" in question_text:
+                    month_index = 6
+                elif "August" in question_text:
+                    month_index = 7
+                elif "September" in question_text:
+                    month_index = 8
+                elif "October" in question_text:
+                    month_index = 9
+                elif "November" in question_text:
+                    month_index = 10
+                elif "December" in question_text:
+                    month_index = 11
+
+                school_1_absence = y_data[school_1 - 1, month_index]  # Adjust for 0-based indexing
+                school_2_absence = y_data[school_2 - 1, month_index]
+                correct_school = school_1 if school_1_absence > school_2_absence else school_2
+
                 # Check which school has higher absences in the relevant month
-                if row == school_1 - 1 and correct_answer == f"School {school_1}":
-                    is_correct = True
-                elif row == school_2 - 1 and correct_answer == f"School {school_2}":
+                if row == correct_school - 1:  # Adjust for 0-based indexing
                     is_correct = True
         else:
             # For other questions, check both row and column
@@ -266,11 +293,18 @@ def on_click_scatter(event, scatter_points, correct_answer):
                 school_1_absence = y_data[school_1 - 1, month_index]  # Adjust for 0-based index
                 school_2_absence = y_data[school_2 - 1, month_index]
 
-                # Determine if the user's click matches the correct comparison
-                if correct_answer == f"School {school_1}" and school_1_absence > school_2_absence:
-                    is_correct = True
-                elif correct_answer == f"School {school_2}" and school_2_absence > school_1_absence:
-                    is_correct = True
+                # Determine which school has higher absences
+                correct_school = school_1 if school_1_absence > school_2_absence else school_2
+
+                # Validate if the user's click is near the correct school's data point for the specified month
+                if correct_answer == f"School {correct_school}":
+                    # Get the x-coordinate for the month and y-coordinate for the correct school's absences
+                    correct_x = month_index + 1  # +1 because x values are 1-based (January is 1, February is 2, etc.)
+                    correct_y = y_data[correct_school - 1, month_index]
+
+                    # Check if the click is within the tolerance range of the correct point
+                    if abs(x_clicked - correct_x) <= correct_x_tolerance and abs(y_clicked - correct_y) <= correct_y_tolerance:
+                        is_correct = True
 
         # Record response time and correctness
         response_time = time.time() - start_time
