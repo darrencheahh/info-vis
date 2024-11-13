@@ -251,7 +251,7 @@ def on_click_scatter(event, scatter_points, correct_answer):
     global trial_index, start_time, trial_cid, current_question
     if event.inaxes:
         x_clicked, y_clicked = event.xdata, event.ydata
-        correct_x_tolerance, correct_y_tolerance = 0.5, 10  # month, absences
+        correct_x_tolerance, correct_y_tolerance = 0.5, 3  # month, absences
 
         question_text = current_question["question"]
 
